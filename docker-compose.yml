@@ -1,0 +1,57 @@
+version: '2'
+
+networks:
+  wspr:
+
+volumes:
+  grafana-storage:
+  influxdb-volume:
+
+services:
+  loki:
+    image: grafana/loki:1.4.1
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - wspr
+
+  promtail:
+    image: grafana/promtail:v1.3.0
+    volumes:
+      - /var/log:/var/log
+    command: -config.file=/etc/promtail/docker-config.yaml
+    networks:
+      - wspr
+
+  grafana:
+    image: grafana/grafana:7.1.5
+    environment:
+      - GF_INSTALL_PLUGINS=agenty-flowcharting-panel,dalvany-image-panel,grafana-worldmap-panel
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+    ports:
+      - 3000:3000
+    networks:
+      - wspr
+
+  telegraf:
+    image: telegraf:latest
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf
+    networks:
+      - wspr
+
+  influxdb:
+    image: influxdb:latest
+    volumes:
+      - influxdb-volume:/var/lib/influxdb
+    restart: always
+    ports:
+      - 8086:8086
+    environment:
+      INFLUXDB_DB: wspr
+    networks:
+      - wspr
+
